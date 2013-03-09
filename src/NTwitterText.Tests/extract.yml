@@ -581,14 +581,6 @@
       text: "#0"
       expected: []
 
-    - description: "Extract multiple valid hashtags"
-      text: "One #two three #four"
-      expected:
-        - hashtag: "two"
-          indices: [4, 8]
-        - hashtag: "four"
-          indices: [15, 20]
-
     - description: "Extract a hashtag containing ñ"
       text: "I'll write more tests #mañana"
       expected: ["mañana"]
@@ -755,6 +747,14 @@
       expected:
         - hashtag: "hashtag"
           indices: [0, 8]
+
+    - description: "Extract multiple valid hashtags"
+      text: "One #two three #four"
+      expected:
+        - hashtag: "two"
+          indices: [4, 8]
+        - hashtag: "four"
+          indices: [15, 20]
 
     - description: "Extract a hastag at the end"
       text: "test a #hashtag"

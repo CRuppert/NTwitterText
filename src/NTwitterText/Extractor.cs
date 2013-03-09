@@ -32,7 +32,7 @@ namespace NTwitterText
 				return null;
 			}
 
-			return ExtractList(Regex.EXTRACT_MENTIONS, text, Regex.EXTRACT_MENTIONS_GROUP_USERNAME);
+			return ExtractList(Regex.VALID_MENTION_OR_LIST, text, Regex.VALID_MENTION_OR_LIST_GROUP_USERNAME);
 		}
 
 		/**
@@ -49,10 +49,10 @@ namespace NTwitterText
 				return null;
 			}
 
-			TRE.Match matcher = Regex.EXTRACT_REPLY.Match(text);
+			TRE.Match matcher = Regex.VALID_REPLY.Match(text);
 			if (matcher.Success)
 			{
-				return matcher.Groups[Regex.EXTRACT_REPLY_GROUP_USERNAME].Value;
+				return matcher.Groups[Regex.VALID_REPLY_GROUP_USERNAME].Value;
 			}
 			else
 			{
@@ -88,8 +88,8 @@ namespace NTwitterText
 			{
 				return null;
 			}
-
-			return ExtractList(Regex.AUTO_LINK_HASHTAGS, text, Regex.AUTO_LINK_HASHTAGS_GROUP_TAG);
+            //Console.WriteLine(Regex.URL_VALID_DOMAIN_NAME);
+			return ExtractList(Regex.VALID_HASHTAG, text, Regex.VALID_HASHTAG_GROUP_TAG);
 		}
 
 		/**

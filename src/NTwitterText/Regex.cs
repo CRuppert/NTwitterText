@@ -6,73 +6,231 @@ using TRE = System.Text.RegularExpressions;
 
 namespace NTwitterText
 {
+    /* Regexes are .net translations of java regexes located at :
+     * https://github.com/mzsanford/twitter-text-java
+     */
+    public class Regex
+    {
 
-public class Regex {
-  private static readonly String[] RESERVED_ACTION_WORDS = {"twitter","lists",
-  "retweet","retweets","following","followings","follower","followers",
-  "with_friend","with_friends","statuses","status","activity","favourites",
-  "favourite","favorite","favorites"};
+        private static String UNICODE_SPACES = "[" +
+                                               "\\u0009-\\u000d" +
+                                               //  # White_Space # Cc   [5] <control-0009>..<control-000D>
+                                               "\\u0020" + // White_Space # Zs       SPACE
+                                               "\\u0085" + // White_Space # Cc       <control-0085>
+                                               "\\u00a0" + // White_Space # Zs       NO-BREAK SPACE
+                                               "\\u1680" + // White_Space # Zs       OGHAM SPACE MARK
+                                               "\\u180E" + // White_Space # Zs       MONGOLIAN VOWEL SEPARATOR
+                                               "\\u2000-\\u200a" + // # White_Space # Zs  [11] EN QUAD..HAIR SPACE
+                                               "\\u2028" + // White_Space # Zl       LINE SEPARATOR
+                                               "\\u2029" + // White_Space # Zp       PARAGRAPH SEPARATOR
+                                               "\\u202F" + // White_Space # Zs       NARROW NO-BREAK SPACE
+                                               "\\u205F" + // White_Space # Zs       MEDIUM MATHEMATICAL SPACE
+                                               "\\u3000" + // White_Space # Zs       IDEOGRAPHIC SPACE
+                                               "]";
 
-  public static readonly String HASHTAG_CHARACTERS = "[a-z0-9_\\u00c0-\\u00d6\\u00d8-\\u00f6\\u00f8-\\u00ff]";
+        private static String LATIN_ACCENTS_CHARS = "\\u00c0-\\u00d6\\u00d8-\\u00f6\\u00f8-\\u00ff" + // Latin-1
+                                                    "\\u0100-\\u024f" + // Latin Extended A and B
+                                                    "\\u0253\\u0254\\u0256\\u0257\\u0259\\u025b\\u0263\\u0268\\u026f\\u0272\\u0289\\u028b" +
+                                                    // IPA Extensions
+                                                    "\\u02bb" + // Hawaiian
+                                                    "\\u0300-\\u036f" + // Combining diacritics
+                                                    "\\u1e00-\\u1eff";
+                              // Latin Extended Additional (mostly for Vietnamese)
 
-  /* URL related hash regex collection */
-  private static readonly String URL_VALID_PRECEEDING_CHARS = "(?:[^/\"':!=]|^|\\:)";
-  //private static readonly String URL_VALID_DOMAIN = "(?:[\\.-]|[^\\p{Punct}])+\\.[a-z]{2,}(?::[0-9]+)?";
-	private static readonly String URL_VALID_DOMAIN = "(?:[\\.-]|[^!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~])+\\.[a-z]{2,}(?::[0-9]+)?";
-	
-  private static readonly String URL_VALID_URL_PATH_CHARS = "[a-z0-9!\\*'\\(\\);:&=\\+\\$/%#\\[\\]\\-_\\.,~]";
-  // Valid end-of-path chracters (so /foo. does not gobble the period).
-  //   1. Allow ) for Wikipedia URLs.
-  //   2. Allow =&# for empty URL parameters and other URL-join artifacts
-  private static readonly String URL_VALID_URL_PATH_ENDING_CHARS = "[a-z0-9\\)=#/]";
-  private static readonly String URL_VALID_URL_QUERY_CHARS = "[a-z0-9!\\*'\\(\\);:&=\\+\\$/%#\\[\\]\\-_\\.,~]";
-  private static readonly String URL_VALID_URL_QUERY_ENDING_CHARS = "[a-z0-9_&=#]";
-  private static readonly String VALID_URL_PATTERN_STRING = "(" +     //  $1 total match
-    "(" + URL_VALID_PRECEEDING_CHARS + ")" +                       //  $2 Preceeding chracter
-    "(" +                                                          //  $3 URL
-      "(https?://|www\\.)" +                                       //  $4 Protocol or beginning
-      "(" + URL_VALID_DOMAIN + ")" +                               //  $5 Domain(s) and optional port number
-      "(/" + URL_VALID_URL_PATH_CHARS + "*" +                      //  $6 URL Path
-             URL_VALID_URL_PATH_ENDING_CHARS + "?)?" +
-      "(\\?" + URL_VALID_URL_QUERY_CHARS + "*" +                   //  $7 Query String
-              URL_VALID_URL_QUERY_ENDING_CHARS + ")?" +
-    ")" +
-  ")";
+        private static String HASHTAG_ALPHA_CHARS = "a-z" + LATIN_ACCENTS_CHARS +
+                                                    "\\u0400-\\u04ff\\u0500-\\u0527" + // Cyrillic
+                                                    "\\u2de0-\\u2dff\\ua640-\\ua69f" + // Cyrillic Extended A/B
+                                                    "\\u0591-\\u05bf\\u05c1-\\u05c2\\u05c4-\\u05c5\\u05c7" +
+                                                    "\\u05d0-\\u05ea\\u05f0-\\u05f4" + // Hebrew
+                                                    "\\ufb1d-\\ufb28\\ufb2a-\\ufb36\\ufb38-\\ufb3c\\ufb3e\\ufb40-\\ufb41" +
+                                                    "\\ufb43-\\ufb44\\ufb46-\\ufb4f" + // Hebrew Pres. Forms
+                                                    "\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc" +
+                                                    "\\u06de-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06fc\\u06ff" + // Arabic
+                                                    "\\u0750-\\u077f\\u08a0\\u08a2-\\u08ac\\u08e4-\\u08fe" +
+                                                    // Arabic Supplement and Extended A
+                                                    "\\ufb50-\\ufbb1\\ufbd3-\\ufd3d\\ufd50-\\ufd8f\\ufd92-\\ufdc7\\ufdf0-\\ufdfb" +
+                                                    // Pres. Forms A
+                                                    "\\ufe70-\\ufe74\\ufe76-\\ufefc" + // Pres. Forms B
+                                                    "\\u200c" + // Zero-Width Non-Joiner
+                                                    "\\u0e01-\\u0e3a\\u0e40-\\u0e4e" + // Thai
+                                                    "\\u1100-\\u11ff\\u3130-\\u3185\\uA960-\\uA97F\\uAC00-\\uD7AF\\uD7B0-\\uD7FF" +
+                                                    // Hangul (Korean)
+                                                    "\\p{IsHiragana}\\p{IsKatakana}" + // Japanese Hiragana and Katakana
+                                                    "\\p{IsCJKUnifiedIdeographs}" + // Japanese Kanji / Chinese Han
+                                                    "\\u3003\\u3005\\u303b" + // Kanji/Han iteration marks
+                                                    "\\uff21-\\uff3a\\uff41-\\uff5a" + // full width Alphabet
+                                                    "\\uff66-\\uff9f" + // half width Katakana
+                                                    "\\uffa1-\\uffdc"; // half width Hangul (Korean)
 
-  /* Begin public constants */
+        private static String HASHTAG_ALPHA_NUMERIC_CHARS = "0-9\\uff10-\\uff19_" + HASHTAG_ALPHA_CHARS;
+        private static String HASHTAG_ALPHA = "[" + HASHTAG_ALPHA_CHARS + "]";
+        private static String HASHTAG_ALPHA_NUMERIC = "[" + HASHTAG_ALPHA_NUMERIC_CHARS + "]";
 
-	public static readonly TRE.Regex AUTO_LINK_HASHTAGS = new TRE.Regex("(^|[^0-9A-Z&/]+)(#|\uFF03)([0-9A-Z_]*[A-Z_]+" + HASHTAG_CHARACTERS + "*)", TRE.RegexOptions.IgnoreCase);
-  public static readonly int AUTO_LINK_HASHTAGS_GROUP_BEFORE = 1;
-  public static readonly int AUTO_LINK_HASHTAGS_GROUP_HASH = 2;
-  public static readonly int AUTO_LINK_HASHTAGS_GROUP_TAG = 3;
+        /* URL related hash regex collection */
+        private static String URL_VALID_PRECEEDING_CHARS = "(?:[^A-Z0-9@＠$#＃\u202A-\u202E]|^)";
 
-  public static readonly TRE.Regex AUTO_LINK_USERNAMES_OR_LISTS = new TRE.Regex("([^a-z0-9_]|^)([@\uFF20]+)([a-z0-9_]{1,20})(/[a-z][a-z0-9\\x80-\\xFF-]{0,79})?", TRE.RegexOptions.IgnoreCase);
-  public static readonly int AUTO_LINK_USERNAME_OR_LISTS_GROUP_BEFORE = 1;
-  public static readonly int AUTO_LINK_USERNAME_OR_LISTS_GROUP_AT = 2;
-  public static readonly int AUTO_LINK_USERNAME_OR_LISTS_GROUP_USERNAME = 3;
-  public static readonly int AUTO_LINK_USERNAME_OR_LISTS_GROUP_LIST = 4;
+        private static String URL_VALID_CHARS = "[\\p{Nl}" + LATIN_ACCENTS_CHARS + "]";
 
-  public static readonly TRE.Regex VALID_URL = null;//new TRE.Regex(VALID_URL_PATTERN_STRING, TRE.RegexOptions.IgnoreCase);
-  public static readonly int VALID_URL_GROUP_BEFORE = 2;
-  public static readonly int VALID_URL_GROUP_URL = 3;
+        private static String URL_VALID_SUBDOMAIN = "(?:(?:" + URL_VALID_CHARS + "[" + URL_VALID_CHARS + "\\-_]*)?" +
+                                                    URL_VALID_CHARS + "\\.)";
 
-  public static readonly TRE.Regex EXTRACT_MENTIONS = new TRE.Regex("(^|[^a-z0-9_])[@\uFF20]([a-z0-9_]{1,20})(?!@)", TRE.RegexOptions.IgnoreCase);
-  public static readonly int EXTRACT_MENTIONS_GROUP_BEFORE = 1;
-  public static readonly int EXTRACT_MENTIONS_GROUP_USERNAME = 2;
+        private static String URL_VALID_DOMAIN_NAME = "(?:(?:" + URL_VALID_CHARS + "[" + URL_VALID_CHARS + "\\-]*)?" +
+                                                      URL_VALID_CHARS + "\\.)";
 
-  public static readonly TRE.Regex EXTRACT_REPLY = new TRE.Regex("^(?:[" + Spaces.GetCharacterClass() + "])*[@\uFF20]([a-z0-9_]{1,20}).*", TRE.RegexOptions.IgnoreCase);
-  public static readonly int EXTRACT_REPLY_GROUP_USERNAME = 1;
+        /* Any non-spac-Puation characters. \p{Z} = any kind of whitespace or invisible separator. */
+        private static String URL_VALID_UNICODE_CHARS = "[.[^\\p{P}\\s\\p{Z}\\p{IsGeneralPunctuation}]]";
 
-	static Regex()
-	{
-		try
-		{
-			VALID_URL = new TRE.Regex(VALID_URL_PATTERN_STRING, TRE.RegexOptions.IgnoreCase);
-		}
-		catch (Exception ex)
-		{
+        private static String URL_VALID_GTLD =
+            "(?:(?:aerobiz|cat|com|coop|edu|gov|info|int|jobs|mil|mobi|museum|name|net|org|pro|tel|travel|xxx)(?=\\P{Nl}|$))";
 
-		}
-	}
-}
+        private static String URL_VALID_CCTLD =
+            "(?:(?:ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|" +
+            "bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|" +
+            "er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|" +
+            "hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|" +
+            "lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|" +
+            "nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|sk|" +
+            "sl|sm|sn|so|sr|ss|st|su|sv|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|" +
+            "va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|za|zm|zw)(?=\\P{Nl}|$))";
+
+        private static String URL_PUNYCODE = "(?:xn--(>[0-9a-z]))";
+
+        public static String URL_VALID_DOMAIN =
+            "(?:(>" + // subdomains + domain + TLD
+            URL_VALID_SUBDOMAIN + ")" + URL_VALID_DOMAIN_NAME + // e.g. www.twitter.com, foo.co.jp, bar.co.uk
+            "(?:" + URL_VALID_GTLD + "|" + URL_VALID_CCTLD + "|" + URL_PUNYCODE + ")" +
+            ")" +
+            "|(?:" + // domain + gTLD
+            URL_VALID_DOMAIN_NAME + // e.g. twitter.com
+            "(?:" + URL_VALID_GTLD + "|" + URL_PUNYCODE + ")" +
+            ")" +
+            "|(?:" + "(?<=https?://)" +
+            "(?:" +
+            "(?:" + URL_VALID_DOMAIN_NAME + URL_VALID_CCTLD + ")" + // protocol + domain + ccTLD
+            "|(?:(>" +
+            URL_VALID_UNICODE_CHARS + ")\\." + // protocol + unicode domain + TLD
+            "(?:" + URL_VALID_GTLD + "|" + URL_VALID_CCTLD + ")" +
+            ")" +
+            ")" +
+            ")" +
+            "|(?:" + // domain + ccTLD + '/'
+            URL_VALID_DOMAIN_NAME + URL_VALID_CCTLD + "(?=/)" + // e.g. t.co/
+            ")";
+
+        private static String URL_VALID_PORT_NUMBER = "(>[0-9])";
+
+        private static String URL_VALID_GENERAL_PATH_CHARS = "[a-z0-9!\\*';:=\\+,.\\$/%#\\[\\]\\-_~\\|&@" +
+                                                             LATIN_ACCENTS_CHARS + "]";
+
+        /** Allow URL paths to contain balanced parens
+         *  1. Used in Wikipedia URLs like /Primer_(film)
+         *  2. Used in IIS sessions like /S(dfd346)/
+        **/
+        private static String URL_BALANCED_PARENS = "\\((>" + URL_VALID_GENERAL_PATH_CHARS + ")\\)";
+        /** Valid end-of-path chracters (so /foo. does not gobble the period).
+         *   2. Allow =&# for empty URL parameters and other URL-join artifacts
+        **/
+
+        private static String URL_VALID_PATH_ENDING_CHARS = "[a-z0-9=_#/\\-\\+" + LATIN_ACCENTS_CHARS + "]|(?:" +
+                                                            URL_BALANCED_PARENS + ")";
+
+        private static String URL_VALID_PATH = "(?:" +
+                                               "(?:" +
+                                               URL_VALID_GENERAL_PATH_CHARS + "*" +
+                                               "(?:" + URL_BALANCED_PARENS + URL_VALID_GENERAL_PATH_CHARS + "*)*" +
+                                               URL_VALID_PATH_ENDING_CHARS +
+                                               ")|(?:@(>" + URL_VALID_GENERAL_PATH_CHARS + ")/)" +
+                                               ")";
+
+        private static String URL_VALID_URL_QUERY_CHARS = "[a-z0-9!?\\*'\\(\\);:&=\\+\\$/%#\\[\\]\\-_\\.,~\\|@]";
+        private static String URL_VALID_URL_QUERY_ENDING_CHARS = "[a-z0-9_&=#/]";
+
+        private static String VALID_URL_PATTERN_STRING =
+            "(" + //  $1 total match
+            "(" + URL_VALID_PRECEEDING_CHARS + ")" + //  $2 Preceeding chracter
+            "(" + //  $3 URL
+            "(https?://)?" + //  $4 Protocol (optional)
+            "(" + URL_VALID_DOMAIN + ")" + //  $5 Domain(s)
+            "(?::(" + URL_VALID_PORT_NUMBER + "))?" + //  $6 Port number (optional)
+            "(/(>" +
+            URL_VALID_PATH + "*)" +
+            ")?" + //  $7 URL Path and anchor
+            "(\\?" + URL_VALID_URL_QUERY_CHARS + "*" + //  $8 Query String
+            URL_VALID_URL_QUERY_ENDING_CHARS + ")?" +
+            ")" +
+            ")";
+
+        private static String AT_SIGNS_CHARS = "@\uFF20";
+
+        private static String DOLLAR_SIGN_CHAR = "\\$";
+        private static String CASHTAG = "[a-z]{1,6}(?:[._][a-z]{1,2})?";
+
+        /* Begin public constants */
+
+        private static string BASIC_URL_DETECTION = "(https?\\S*)|(" + URL_VALID_DOMAIN_NAME + "\\S*)";
+        public static TRE.Regex VALID_HASHTAG =
+            new TRE.Regex(
+                "(^|[^&" + HASHTAG_ALPHA_NUMERIC_CHARS + "])([#|\uFF03](?!https?)(?<!" + BASIC_URL_DETECTION + "))(" 
+                + HASHTAG_ALPHA_NUMERIC + "*" + HASHTAG_ALPHA +
+                HASHTAG_ALPHA_NUMERIC + "*)", TRE.RegexOptions.Compiled | TRE.RegexOptions.IgnoreCase);
+
+        public static int VALID_HASHTAG_GROUP_BEFORE = 1;
+        public static int VALID_HASHTAG_GROUP_HASH = 2;
+        public static int VALID_HASHTAG_GROUP_TAG = 5;//3;
+        public static TRE.Regex INVALID_HASHTAG_MATCH_END = new TRE.Regex("^(?:[#＃]|://)", TRE.RegexOptions.Compiled);
+
+        public static TRE.Regex RTL_CHARACTERS = new TRE.Regex(
+            "[\u0600-\u06FF\u0750-\u077F\u0590-\u05FF\uFE70-\uFEFF]", TRE.RegexOptions.Compiled);
+
+        public static TRE.Regex AT_SIGNS = new TRE.Regex("[" + AT_SIGNS_CHARS + "]", TRE.RegexOptions.Compiled);
+
+        public static TRE.Regex VALID_MENTION_OR_LIST =
+            new TRE.Regex(
+                "([^a-z0-9_!#$%&*" + AT_SIGNS_CHARS + "]|^|RT:?)((>" + AT_SIGNS +
+                "))([a-z0-9_]{1,20})(/[a-z][a-z0-9_\\-]{0,24})?",
+                TRE.RegexOptions.Compiled | TRE.RegexOptions.IgnoreCase);
+
+        public static int VALID_MENTION_OR_LIST_GROUP_BEFORE = 1;
+        public static int VALID_MENTION_OR_LIST_GROUP_AT = 2;
+        public static int VALID_MENTION_OR_LIST_GROUP_USERNAME = 3;
+        public static int VALID_MENTION_OR_LIST_GROUP_LIST = 4;
+
+        public static TRE.Regex VALID_REPLY =
+            new TRE.Regex("^(?:" + UNICODE_SPACES + ")*(" + AT_SIGNS + "(?!https?))([a-z0-9_]{1,20})",
+                          TRE.RegexOptions.Compiled | TRE.RegexOptions.IgnoreCase);
+
+        public static int VALID_REPLY_GROUP_USERNAME = 2;
+
+        public static TRE.Regex INVALID_MENTION_MATCH_END =
+            new TRE.Regex("^(?:[" + AT_SIGNS_CHARS + LATIN_ACCENTS_CHARS + "]|://)", TRE.RegexOptions.Compiled);
+
+        public static TRE.Regex VALID_URL = new TRE.Regex(VALID_URL_PATTERN_STRING,
+                                                          TRE.RegexOptions.Compiled | TRE.RegexOptions.IgnoreCase);
+
+        public static int VALID_URL_GROUP_ALL = 1;
+        public static int VALID_URL_GROUP_BEFORE = 2;
+        public static int VALID_URL_GROUP_URL = 3;
+        public static int VALID_URL_GROUP_PROTOCOL = 4;
+        public static int VALID_URL_GROUP_DOMAIN = 5;
+        public static int VALID_URL_GROUP_PORT = 6;
+        public static int VALID_URL_GROUP_PATH = 7;
+        public static int VALID_URL_GROUP_QUERY_STRING = 8;
+
+        public static TRE.Regex VALID_TCO_URL = new TRE.Regex("^https?:\\/\\/t\\.co\\/(>[a-z0-9])",
+                                                              TRE.RegexOptions.Compiled | TRE.RegexOptions.IgnoreCase);
+
+        public static TRE.Regex INVALID_URL_WITHOUT_PROTOCOL_MATCH_BEGIN = new TRE.Regex("[-_./]$",
+                                                                                         TRE.RegexOptions.Compiled);
+
+        public static TRE.Regex VALID_CASHTAG =
+            new TRE.Regex(
+                "(^|" + UNICODE_SPACES + ")(" + DOLLAR_SIGN_CHAR + ")(" + CASHTAG + ")" + "(?=$|\\s|\\p{P})",
+                TRE.RegexOptions.Compiled | TRE.RegexOptions.IgnoreCase);
+
+        public static int VALID_CASHTAG_GROUP_BEFORE = 1;
+        public static int VALID_CASHTAG_GROUP_DOLLAR = 2;
+        public static int VALID_CASHTAG_GROUP_CASHTAG = 3;
+        
+
+    }
 }
