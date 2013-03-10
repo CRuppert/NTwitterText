@@ -72,7 +72,7 @@ namespace NTwitterText
 			{
 				return null;
 			}
-
+            Console.WriteLine(Regex.URL_VALID_SUBDOMAIN);
 			return ExtractList(Regex.VALID_URL, text, Regex.VALID_URL_GROUP_URL);
 		}
 

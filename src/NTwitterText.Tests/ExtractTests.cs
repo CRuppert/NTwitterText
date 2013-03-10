@@ -190,7 +190,6 @@ namespace NTwitterText.Tests
             return cases.ToArray();
         }
 
-
         public IndexedTwitterTest[] GetIndexedTagCaseData(string testCollectionName, string keyName)
         {
 

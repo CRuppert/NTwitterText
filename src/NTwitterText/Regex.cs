@@ -69,13 +69,13 @@ namespace NTwitterText
         /* URL related hash regex collection */
         private static String URL_VALID_PRECEEDING_CHARS = "(?:[^A-Z0-9@＠$#＃\u202A-\u202E]|^)";
 
-        private static String URL_VALID_CHARS = "[\\p{Nl}" + LATIN_ACCENTS_CHARS + "]";
+        private static String URL_VALID_CHARS = "\\p{Nl}a-z" + LATIN_ACCENTS_CHARS ;
 
-        private static String URL_VALID_SUBDOMAIN = "(?:(?:" + URL_VALID_CHARS + "[" + URL_VALID_CHARS + "\\-_]*)?" +
-                                                    URL_VALID_CHARS + "\\.)";
+        public static String URL_VALID_SUBDOMAIN = "(?:(?:[" + URL_VALID_CHARS + "][" + URL_VALID_CHARS + "\\-_]*)?[" +
+                                                    URL_VALID_CHARS + "]\\.)";
 
-        private static String URL_VALID_DOMAIN_NAME = "(?:(?:" + URL_VALID_CHARS + "[" + URL_VALID_CHARS + "\\-]*)?" +
-                                                      URL_VALID_CHARS + "\\.)";
+        private static String URL_VALID_DOMAIN_NAME = "(?:(?:[" + URL_VALID_CHARS + "][" + URL_VALID_CHARS + "\\-]*)?[" +
+                                                      URL_VALID_CHARS + "]\\.)";
 
         /* Any non-spac-Puation characters. \p{Z} = any kind of whitespace or invisible separator. */
         private static String URL_VALID_UNICODE_CHARS = "[.[^\\p{P}\\s\\p{Z}\\p{IsGeneralPunctuation}]]";
