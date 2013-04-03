@@ -31,7 +31,7 @@ namespace NTwitterText.Tests
         {
             Extractor testExtractor = new Extractor();
             var m = testExtractor.ExtractMentionedScreennames(testCase.TestString);
-            Assert.AreEqual(testCase.ExpectedTags.Count(), m.Count);
+            Assert.AreEqual(testCase.ExpectedTags.Count(), m.Count, testCase.Description);
         }
 
         [Test, TestCaseSource("Urls")]
@@ -39,7 +39,7 @@ namespace NTwitterText.Tests
         {
             Extractor testExtractor = new Extractor();
             var m = testExtractor.ExtractURLs(testCase.TestString);
-            Assert.AreEqual(testCase.ExpectedTags.Count(), m.Count);
+            Assert.AreEqual(testCase.ExpectedTags.Count(), m.Count, testCase.Description);
         }
 
         [Test, TestCaseSource("Replies")]
@@ -50,11 +50,11 @@ namespace NTwitterText.Tests
             
             if (m == null)
             {
-                Assert.IsEmpty(testCase.ExpectedTags.First());
+                Assert.IsEmpty(testCase.ExpectedTags.First(), testCase.Description);
             }
             else
             {
-                Assert.AreEqual(testCase.ExpectedTags.First(), m);
+                Assert.AreEqual(testCase.ExpectedTags.First(), m, testCase.Description);
             }
         }
 
